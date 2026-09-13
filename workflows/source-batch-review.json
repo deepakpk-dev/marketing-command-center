@@ -1,0 +1,62 @@
+{
+  "name": "Signal - Source export to human review",
+  "active": false,
+  "nodes": [
+    {
+      "id": "webhook",
+      "name": "Receive source batch",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 240],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "signal-source-batch",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pipeline",
+      "name": "Ingest and analyze",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 240],
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/api/workflows/run",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ days: 7, channel: 'all', batch: $json.body }) }}",
+        "options": { "timeout": 65000 }
+      }
+    },
+    {
+      "id": "response",
+      "name": "Return handoff result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [680, 240],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Receive source batch": {
+      "main": [[{ "node": "Ingest and analyze", "type": "main", "index": 0 }]]
+    },
+    "Ingest and analyze": {
+      "main": [
+        [{ "node": "Return handoff result", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "tags": []
+}

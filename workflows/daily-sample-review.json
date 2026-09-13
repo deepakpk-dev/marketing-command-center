@@ -1,0 +1,67 @@
+{
+  "name": "Signal - Daily sample review",
+  "active": false,
+  "nodes": [
+    {
+      "id": "schedule",
+      "name": "Weekday review",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 240],
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 7 * * 1-5" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sample-sync",
+      "name": "Sync modeled fixture",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 240],
+      "parameters": {
+        "method": "PUT",
+        "url": "http://host.docker.internal:3000/api/ingest",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"source\":\"sample\"}",
+        "options": { "timeout": 60000 }
+      }
+    },
+    {
+      "id": "analyze",
+      "name": "Analyze and queue review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 240],
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/api/workflows/run",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"days\":7,\"channel\":\"all\"}",
+        "options": { "timeout": 65000 }
+      }
+    }
+  ],
+  "connections": {
+    "Weekday review": {
+      "main": [[{ "node": "Sync modeled fixture", "type": "main", "index": 0 }]]
+    },
+    "Sync modeled fixture": {
+      "main": [
+        [{ "node": "Analyze and queue review", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1", "timezone": "Europe/Berlin" },
+  "pinData": {},
+  "tags": []
+}

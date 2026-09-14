@@ -56,4 +56,8 @@ Files: README.md and docs/deployment.md; generated Next type file only restored 
 - [x] Document public/private paths, accepted CSV fields, limitations and browser-memory privacy without presenting manuals as required user onboarding.
 - [x] Run `npm run check`, `npm run test:e2e`, `git diff --check`; inspect actual results. Final results: 72 unit/database tests, 14 browser tests, lint, typecheck and production build pass.
 - [x] Review imports/network boundary: public modules cannot import node:crypto, Supabase or private repositories.
-- [ ] Commit and push verified changes; deploy to the existing Vercel project, verify public entry and private signed-out protection on production.
+- [x] Commit and push verified changes; deploy to the existing Vercel project, verify public entry and private signed-out protection on production.
+
+## Release evidence
+
+Implementation commit: 8556e32, fast-forwarded and pushed to main. Production deployment: dpl_9FGk2tLq1JvKwnWBVLTepXZB6ZN6, READY. All seven public browser tests pass against https://signal-marketing-command-center.vercel.app, including local upload, mapping, evidence handoff, simulated decision, CSV export, tab isolation, clearing and mobile layout. Live probes confirm canonical redirects, downloadable example CSVs, healthy service, and 401 protection on private dashboard and ingestion. No account changes, real emails or live ad-platform connections were made during this release.

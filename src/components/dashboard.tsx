@@ -76,6 +76,7 @@ const subtitles: Record<View, string> = {
 };
 export function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null),
+    [mode, setMode] = useState<DashboardData["mode"] | null>(null),
     [view, setView] = useState<View>("overview"),
     [days, setDays] = useState<Period>(7),
     [channel, setChannel] = useState<ChannelFilter>("all"),
@@ -90,15 +91,15 @@ export function Dashboard() {
     [mobileNav, setMobileNav] = useState(false),
     [selected, setSelected] = useState<CampaignPerformance | null>(null);
   useEffect(() => {
-    const controller = new AbortController();
+    let active = true;
     fetch(`/api/dashboard?days=${days}&channel=${channel}`, {
-      signal: controller.signal,
       cache: "no-store",
     })
       .then(async (response) => {
         const body = await response.json();
-        if (controller.signal.aborted) return;
+        if (!active) return;
         if (response.status === 401 || response.status === 403) {
+          setMode("supabase");
           setNeedsLogin(true);
           setData(null);
           if (response.status === 403) setError(body.error);
@@ -107,19 +108,22 @@ export function Dashboard() {
         if (!response.ok)
           throw new Error(body.error || "Could not load this workspace.");
         setData(body);
+        setMode(body.mode);
         setError("");
         setNeedsLogin(false);
       })
       .catch((e) => {
-        if (controller.signal.aborted || e.name === "AbortError") return;
+        if (!active) return;
         setData(null);
         setSelected(null);
         setError(e.message);
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        if (active) setLoading(false);
       });
-    return () => controller.abort();
+    return () => {
+      active = false;
+    };
   }, [days, channel, refresh]);
   const navigate = (next: View) => {
     setView(next);
@@ -296,19 +300,28 @@ export function Dashboard() {
           <div className="workspace-mode">
             <ShieldCheck size={15} />
             <span>
-              {data?.mode === "supabase"
+              {mode === "supabase"
                 ? "Connected workspace"
-                : "Sample workspace"}
+                : mode === "demo"
+                  ? "Sample workspace"
+                  : "Workspace access"}
             </span>
           </div>
           <div className="profile-row">
             <span className="profile-avatar">PM</span>
             <div>
-              <strong>{data?.access?.user.email || "Performance team"}</strong>
+              <strong>
+                {data?.access?.user.email ||
+                  (needsLogin ? "Sign-in required" : "Performance team")}
+              </strong>
               <small>
-                {data?.mode === "supabase"
-                  ? data.access?.role || "Workspace access"
-                  : "Explore the demo"}
+                {needsLogin
+                  ? "Use your invited account"
+                  : mode === "supabase"
+                    ? data?.access?.role || "Workspace access"
+                    : mode === "demo"
+                      ? "Explore the demo"
+                      : "Workspace access"}
               </small>
             </div>
             {data?.mode === "supabase" && (
@@ -362,7 +375,11 @@ export function Dashboard() {
               <span className="live-dot" />
               {data
                 ? `${data.mode === "demo" ? "Sample data" : "Data synced"} · ${data.ingestions[0] ? timeLabel(data.ingestions[0].createdAt) : "No sync yet"}`
-                : "Loading workspace"}
+                : needsLogin
+                  ? "Sign-in required"
+                  : loading
+                    ? "Loading workspace"
+                    : "Workspace unavailable"}
             </span>
             <button
               className="button compact"

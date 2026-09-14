@@ -1,5 +1,45 @@
 import { test, expect } from "@playwright/test";
 import { buildSampleExports } from "../src/lib/samples";
+test("signed-out connected workspace shows account access instead of demo or loading status", async ({ page }) => {
+  await page.route("**/api/dashboard?*", (route) => route.fulfill({
+    status: 401, contentType: "application/json", body: JSON.stringify({ error: "Sign in with your invited account." }),
+  }));
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Open your workspace" })).toBeVisible();
+  await expect(page.locator(".sync-state")).toContainText("Sign-in required");
+  await expect(page.locator(".workspace-mode")).toContainText("Connected workspace");
+  await expect(page.locator(".sidebar")).not.toContainText("Explore the demo");
+  await expect(page.locator(".sidebar")).not.toContainText("Sample workspace");
+});
+test("dashboard cleanup does not produce unhandled errors or replace a newer filter with old data", async ({ page }) => {
+  await page.addInitScript(() => {
+    const errors: string[] = [];
+    Object.assign(window, { auditUnhandledErrors: errors });
+    window.addEventListener("unhandledrejection", (event) => errors.push(String(event.reason?.message ?? event.reason)));
+  });
+  await page.goto("/");
+  await expect(page.locator(".kpi-strip")).toBeVisible();
+  let release!: () => void;
+  const blocked = new Promise<void>((resolve) => { release = resolve; });
+  let entered!: () => void;
+  const requested = new Promise<void>((resolve) => { entered = resolve; });
+  await page.route("**/api/dashboard?days=14&channel=all", async (route) => {
+    const response = await route.fetch();
+    entered();
+    await blocked;
+    await route.fulfill({ response });
+  });
+  await page.getByLabel("Reporting period").selectOption("14");
+  await requested;
+  await page.getByLabel("Reporting period").selectOption("28");
+  await expect(page.locator(".date-context")).toContainText("16 Aug to 12 Sept 2026");
+  const oldResponse = page.waitForResponse("**/api/dashboard?days=14&channel=all");
+  release();
+  await oldResponse;
+  await expect(page.locator(".date-context")).toContainText("16 Aug to 12 Sept 2026");
+  await expect(page.locator(".date-context")).toContainText("previous 28 days");
+  expect(await page.evaluate(() => (window as Window & { auditUnhandledErrors?: string[] }).auditUnhandledErrors)).toEqual([]);
+});
 test("failed reporting filter hides previous metrics and retry loads the selection", async ({ page }) => {
   await page.goto("/");
   const metrics = page.locator(".kpi-strip");

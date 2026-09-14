@@ -21,6 +21,8 @@ For a public sample portfolio, leave `DATA_MODE=demo` and `AI_PROVIDER=demo`; me
 
 When running behind a reverse proxy, set `APP_ORIGIN` to the public HTTPS origin, for example `https://signal.example.com`. Without an explicit origin, the app compares the incoming Host and forwarded protocol, which also supports local Next.js hostname normalization. Your proxy must preserve Host and supply its own trusted forwarded protocol.
 
+With `APP_ORIGIN` configured, visits to `/` and `/auth/*` on alternate domains redirect temporarily to that canonical origin, preserving paths and query parameters. This includes `signal-marketing-command-center.vercel.app`, which is an alias of this project. Sign-in, invitations, recovery and browser sessions use the canonical domain together. API endpoints do not redirect; direct cross-origin API writes remain rejected. Redeploy after changing `APP_ORIGIN`, because Next.js builds the page redirect rules from this setting.
+
 ## Docker
 
 ```powershell

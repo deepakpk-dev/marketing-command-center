@@ -27,10 +27,10 @@ Transactions lock the workspace while ingesting, saving analysis or recording de
 
 ## Access and errors
 
-Supabase access uses a server secret and one configured workspace. RLS is enabled with no browser access policies, and only server RPC grants are present. Supabase [secret keys bypass RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), so every connected data route independently checks a signed workspace session. This is a single-workspace portfolio auth model, not a multi-tenant SaaS identity system. Reviewer display labels are not independent verified user identities.
+Connected reporting/actions use validated Supabase Auth sessions, current membership and workspace-scoped RLS. Guarded private write functions enforce permissions behind public security-invoker wrappers. Approval events record the verified actor ID/email, not a submitted display label. Server secret access is restricted to authorized invitations and ingestion/analysis workflows. See [authentication](auth.md).
 
 Workflow bearer credentials cover source ingestion and analysis. They cannot approve actions or read campaign exports. Cookie writes reject cross-origin browser requests. Uploads are streamed with a 2 MB cap. Routes return 400 for invalid data, 401 for missing sessions, 403 for unsafe origins, 409 for conflicts/stale data, 413 for oversized payloads, 429 for rate limits and sanitized server errors for provider/database failures. Database and AI errors never echo keys or raw provider responses.
 
 ## Scale and next extensions
 
-The MVP computes the latest 56-day window in-process and reads recent audit/analysis records. For a large account, move daily reporting aggregates into SQL views/materialized tables, use durable queues for source pagination and long-running analysis, and add distributed rate limiting. Replace the shared password with Supabase Auth and membership policies before introducing multiple users or workspaces. Live execution must be a separate adapter that revalidates approval, evidence version, account identity, budget limits and idempotency.
+The MVP computes the latest 56-day window in-process. For large accounts, add SQL reporting aggregates, durable queues and distributed rate limits. Workspace selection and onboarding remain SaaS extensions. Live execution must separately revalidate approval, evidence version, account identity, budget limits and idempotency.

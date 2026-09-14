@@ -1,9 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  createSessionToken,
-  verifySessionToken,
-  authorizeRequest,
-} from "../src/lib/auth";
+import { authorizeRequest } from "../src/lib/auth";
 afterEach(() => vi.unstubAllEnvs());
 describe("server authorization", () => {
   it("accepts the browser origin when Next normalizes the internal request hostname", () => {
@@ -14,12 +10,15 @@ describe("server authorization", () => {
     });
     expect(() => authorizeRequest(request)).not.toThrow();
   });
-  it("rejects tampered and expired signed sessions", () => {
-    const key = "x".repeat(40);
-    const token = createSessionToken(key, 1000);
-    expect(verifySessionToken(token, key, 1100)).toBe(true);
-    expect(verifySessionToken(token + "x", key, 1100)).toBe(false);
-    expect(verifySessionToken(token, key, 1000 + 8 * 86400)).toBe(false);
+  it("rejects legacy shared-password cookies", () => {
+    vi.stubEnv("DATA_MODE", "supabase");
+    expect(() =>
+      authorizeRequest(
+        new Request("https://app.test/api/dashboard", {
+          headers: { cookie: "signal_auth=legacy-signed-cookie" },
+        }),
+      ),
+    ).toThrow(/sign in/i);
   });
   it("requires authentication for every connected data request", () => {
     vi.stubEnv("DATA_MODE", "supabase");

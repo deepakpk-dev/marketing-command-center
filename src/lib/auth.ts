@@ -1,4 +1,4 @@
-import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import { ApiError } from "./errors";
 export function getDataMode(): "demo" | "supabase" {
   const mode = process.env.DATA_MODE || "demo";
@@ -19,29 +19,6 @@ export const secureEqual = (a: string, b: string): boolean => {
     right = Buffer.from(b);
   return left.length === right.length && timingSafeEqual(left, right);
 };
-export function createSessionToken(
-  secret: string,
-  issued = Math.floor(Date.now() / 1000),
-): string {
-  return `${issued}.${createHmac("sha256", secret).update(String(issued)).digest("base64url")}`;
-}
-export function verifySessionToken(
-  token: string,
-  secret: string,
-  now = Math.floor(Date.now() / 1000),
-): boolean {
-  const [issued, signature, extra] = token.split(".");
-  const time = Number(issued);
-  return (
-    !extra &&
-    !!signature &&
-    /^\d+$/.test(issued) &&
-    Number.isSafeInteger(time) &&
-    time <= now + 60 &&
-    now - time <= 7 * 86400 &&
-    secureEqual(token, createSessionToken(secret, time))
-  );
-}
 export function cookieValue(
   request: Request,
   name: string,
@@ -52,16 +29,6 @@ export function cookieValue(
     .map((x) => x.trim())
     .find((x) => x.startsWith(`${name}=`))
     ?.slice(name.length + 1);
-}
-export function sessionConfig(): { password: string; secret: string } {
-  const password = process.env.APP_PASSWORD || "",
-    secret = process.env.SESSION_SECRET || "";
-  if (password.length < 12 || secret.length < 32)
-    throw new ApiError(
-      503,
-      "Connected mode requires APP_PASSWORD (12+ characters) and SESSION_SECRET (32+ characters).",
-    );
-  return { password, secret };
 }
 export function requestOrigin(request: Request): string {
   if (process.env.APP_ORIGIN) {
@@ -99,6 +66,8 @@ export interface Access {
   sessionId: string;
   cookie?: string;
   workflow: boolean;
+  role?: import("./permissions").WorkspaceRole;
+  user?: { id: string; email: string };
 }
 export function authorizeRequest(
   request: Request,
@@ -116,10 +85,9 @@ export function authorizeRequest(
     return { sessionId: "workflow", workflow: true };
   checkOrigin(request);
   if (getDataMode() === "supabase") {
-    const { secret } = sessionConfig();
-    if (!verifySessionToken(cookieValue(request, "signal_auth") || "", secret))
-      throw new ApiError(401, "Sign in to view this workspace.");
-    return { sessionId: "connected", workflow: false };
+    // Connected user access is asynchronous and verified by Supabase Auth.
+    // Legacy shared-password cookies never grant access.
+    throw new ApiError(401, "Sign in to view this workspace.");
   }
   const existing = cookieValue(request, "signal_demo");
   if (existing && /^[a-f0-9-]{36}$/.test(existing))

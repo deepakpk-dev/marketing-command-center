@@ -74,7 +74,11 @@ export function Approvals({
                   {dateLabel(rec.periodStart)} to {dateLabel(rec.periodEnd)}
                 </span>
               </div>
-              {reviewing === rec.id ? (
+              {data.mode === "supabase" && !data.access?.permissions.approve ? (
+                <p className="measurement-note">
+                  An approver or administrator must review this action.
+                </p>
+              ) : reviewing === rec.id ? (
                 <div className="inline-review">
                   <h4>Evidence behind this action</h4>
                   <ul>

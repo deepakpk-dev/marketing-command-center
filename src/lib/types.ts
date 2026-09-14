@@ -123,6 +123,7 @@ export interface ApprovalEvent {
   decision: "approved" | "rejected";
   note: string;
   reviewer: string;
+  reviewerUserId?: string | null;
   createdAt: string;
 }
 export interface IngestionRun {
@@ -140,6 +141,11 @@ export interface StoreState extends NormalizedBatch {
   ingestions: IngestionRun[];
 }
 export interface DashboardData {
+  access?: {
+    user: { id: string; email: string };
+    role: import("./permissions").WorkspaceRole;
+    permissions: import("./permissions").Permissions;
+  };
   mode: "demo" | "supabase";
   aiProvider: "demo" | "openai";
   evidence: Evidence;

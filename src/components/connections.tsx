@@ -134,7 +134,10 @@ export function Connections({
             <span>JSON format · up to 2 MB · max 10,000 facts</span>
             <button
               className="button"
-              disabled={busy}
+              disabled={
+                busy ||
+                (data.mode === "supabase" && !data.access?.permissions.ingest)
+              }
               onClick={() => fileRef.current?.click()}
             >
               Choose JSON file
@@ -145,6 +148,10 @@ export function Connections({
               accept=".json,application/json"
               className="sr-only"
               aria-label="Import source JSON"
+              disabled={
+                busy ||
+                (data.mode === "supabase" && !data.access?.permissions.ingest)
+              }
               onChange={(event) => void importFile(event.target.files?.[0])}
             />
           </div>

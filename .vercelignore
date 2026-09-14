@@ -1,11 +1,12 @@
-node_modules
+.env*
+.git
 .next
 .next-dev
-.git
+node_modules
 supabase/.temp
 supabase/.branches
-.env*
 test-results
 playwright-report
-output
+coverage
 *.tsbuildinfo
+docs/screenshots

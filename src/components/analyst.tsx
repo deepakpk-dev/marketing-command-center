@@ -107,7 +107,10 @@ export function AnalystView({
           </div>
           <button
             className="button primary"
-            disabled={busy}
+            disabled={
+              busy ||
+              (data.mode === "supabase" && !data.access?.permissions.analyze)
+            }
             onClick={onAnalyze}
           >
             <RefreshCw size={15} className={busy ? "spin" : ""} />

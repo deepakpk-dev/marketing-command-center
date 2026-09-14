@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { buildSampleExports } from "./samples";
 import { normalizeBatch } from "./ingestion";
@@ -195,7 +195,12 @@ export class DemoRepository implements Repository {
   }
 }
 type Row = Record<string, unknown>;
-function dbFailure(error: { message: string } | null): void {
+function dbFailure(error: { message: string; code?: string } | null): void {
+  if (error?.code === "42501")
+    throw new ApiError(
+      403,
+      "Database permission denied. Your role or session may have changed. Sign in and retry.",
+    );
   if (error)
     throw new ApiError(
       503,
@@ -205,23 +210,13 @@ function dbFailure(error: { message: string } | null): void {
 export class SupabaseRepository implements Repository {
   private client: SupabaseClient;
   private workspace: string;
-  constructor() {
-    const url = z.url().parse(process.env.SUPABASE_URL);
-    const key =
-      process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!key)
-      throw new ApiError(
-        503,
-        "Supabase mode requires a server-side secret key.",
-      );
+  constructor(client: SupabaseClient) {
     this.workspace = z
       .uuid()
       .parse(
         process.env.WORKSPACE_ID || "11111111-1111-4111-8111-111111111111",
       );
-    this.client = createClient(url, key, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    this.client = client;
   }
   private async rows(
     table: string,
@@ -348,6 +343,7 @@ export class SupabaseRepository implements Repository {
         decision: r.decision as ApprovalEvent["decision"],
         note: String(r.note),
         reviewer: String(r.reviewer),
+        reviewerUserId: r.reviewer_user_id ? String(r.reviewer_user_id) : null,
         createdAt: String(r.created_at),
       })),
       ingestions: ingestions.map((r) => ({
@@ -402,7 +398,6 @@ export class SupabaseRepository implements Repository {
       p_id: id,
       p_decision: decision,
       p_note: note,
-      p_reviewer: reviewer,
     });
     if (error?.message.includes("conflict"))
       throw new ApiError(
@@ -416,6 +411,7 @@ export class SupabaseRepository implements Repository {
       decision: data.decision,
       note: data.note,
       reviewer: data.reviewer,
+      reviewerUserId: data.reviewer_user_id,
       createdAt: data.created_at,
     };
   }
@@ -423,8 +419,15 @@ export class SupabaseRepository implements Repository {
 const globals = globalThis as typeof globalThis & {
   signalRepositories?: Map<string, { repo: DemoRepository; touched: number }>;
 };
-export function getRepository(sessionId: string): Repository {
-  if (getDataMode() === "supabase") return new SupabaseRepository();
+export function getRepository(
+  sessionId: string,
+  client?: SupabaseClient,
+): Repository {
+  if (getDataMode() === "supabase") {
+    if (!client)
+      throw new ApiError(401, "A verified request client is required.");
+    return new SupabaseRepository(client);
+  }
   const cache = (globals.signalRepositories ??= new Map());
   const now = Date.now();
   for (const [id, entry] of cache)

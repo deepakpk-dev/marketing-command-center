@@ -29,6 +29,7 @@ export async function POST(request: Request) {
       };
     },
     true,
+    "ingest",
   );
 }
 export async function PUT(request: Request) {
@@ -49,5 +50,6 @@ export async function PUT(request: Request) {
       };
     },
     true,
+    "ingest",
   );
 }

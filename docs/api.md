@@ -1,6 +1,6 @@
 # API contract
 
-Route handlers use JSON and no-store responses. Supabase mode requires a signed `signal_auth` cookie. Demo mode issues `signal_demo` and isolates that session’s state. Supply the same cookie across requests to retain sample decisions. Cookies are HTTP-only, SameSite Lax, and Secure on HTTPS.
+Route handlers use JSON and no-store responses. Supabase mode requires validated Supabase Auth cookies and current membership; legacy `signal_auth` cookies are rejected. Demo mode uses `signal_demo` to isolate state. Cookies are HTTP-only, SameSite Lax and Secure on HTTPS. Current session/member contracts and role requirements are in [authentication](auth.md).
 
 | Method and path                             | Purpose                                                                                                      | Access                                            |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
@@ -11,7 +11,9 @@ Route handlers use JSON and no-store responses. Supabase mode requires a signed 
 | POST `/api/workflows/run`                   | Optional ingestion followed by analysis                                                                      | Session or workflow bearer                        |
 | POST `/api/recommendations/{uuid}/decision` | Atomic approval/rejection with note                                                                          | Workspace session only                            |
 | GET `/api/export?days=7&channel=all`        | CSV report for selected campaigns                                                                            | Workspace session only                            |
-| GET/POST/DELETE `/api/session`              | Access status, password sign-in, sign-out                                                                    | Public entry point; origin checks and login limit |
+| GET/POST/PUT/DELETE `/api/session`          | Status, email/password sign-in, individual password update, sign-out | PUT requires membership; origin checks and limits |
+| POST `/api/session/exchange` | Invitation token exchange for cookies | Valid Auth identity and membership |
+| GET/POST/PATCH `/api/members` | List, invite, change/remove membership | Administrator only |
 | GET `/api/health`                           | Process liveness                                                                                             | Public; no secrets or business data               |
 
 `days` accepts 7, 14 or 28; `channel` accepts `all`, `google` or `meta`. Invalid or unexpected query/body fields reject the request. Unknown campaigns in a facts-only batch must be ingested as dimensions first.
@@ -89,4 +91,4 @@ Omit `batch` to analyze existing data; an explicitly empty batch rejects ingesti
 }
 ```
 
-The display label is not an independently verified user identity in this shared-password MVP. Notes require 3 to 1,000 trimmed characters. A decision can happen once. Changed source data blocks approval of an old recommendation with 409; rejection can close an outdated action. Events preserve the note and time and cannot be edited in Postgres. Approval is an execution handoff, not permission for an autonomous system to change campaigns.
+Connected mode ignores the optional legacy reviewer field and derives actor ID/email from the authenticated account. Notes require 3 to 1,000 trimmed characters. A decision can happen once. Changed data blocks stale approval with 409. Events cannot be edited. Approval is a human handoff, not autonomous campaign execution permission.

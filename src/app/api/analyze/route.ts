@@ -10,5 +10,6 @@ export async function POST(request: Request) {
       return runAnalysis(repo, days, channel, access.sessionId);
     },
     true,
+    "analyze",
   );
 }

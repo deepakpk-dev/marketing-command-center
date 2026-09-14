@@ -2,6 +2,10 @@
 
 **Signal** is a working portfolio application that turns advertising and analytics data into evidence, recommendations, and human decisions. One Next.js application runs the dashboard and all backend route handlers.
 
+Live application: [Marketing Command Center](https://marketing-command-center-deepakprabhs-projects.vercel.app). Use your existing invited account; **Forgot your password?** opens recovery. Vercel account login is not required. Supabase sign-in and workspace permissions protect the data. Production uses the deterministic sample analyst.
+
+Password recovery is implemented and production-tested. Resend delivery to general recipients still requires a verified sender domain and Supabase custom SMTP. See [email delivery](docs/email-delivery.md).
+
 ![Signal performance overview](docs/screenshots/overview.png)
 
 ## Run locally
@@ -24,7 +28,7 @@ Open [localhost:3000](http://localhost:3000). No secrets or external accounts ar
 - Minimum-volume anomaly rules with explicit thresholds and measurement caveats.
 - Deterministic sample analyst plus a server-only OpenAI Responses adapter with schema, campaign, budget and evidence validation.
 - Pending → approved/rejected workflow with required notes, conflict protection, source-version checks, and immutable database audit events.
-- Durable Supabase mode, signed password sessions, scoped workflow access, n8n definitions, CSV exports and sync history.
+- Durable Supabase mode, individual invite-only sign-ins, four permission roles, scoped workflow access, n8n definitions, CSV exports and sync history.
 - Database migration tests, unit tests, browser tests, CI, standalone production build, Docker and Vercel configuration.
 
 ## Try the portfolio story
@@ -38,7 +42,7 @@ Open [localhost:3000](http://localhost:3000). No secrets or external accounts ar
 
 ## Connected Supabase mode
 
-Create a Supabase project, then execute `supabase/migrations/202609130001_initial.sql` through the SQL editor or your normal migration runner. The migration creates the default workspace, all tables, RLS, and transactional functions. It supports Supabase’s existing `anon`, `authenticated` and `service_role` roles; tests execute it against embedded Postgres.
+The app is linked to project `btgavjndnsegdsaspsmx`, with both migrations applied. See [individual sign-ins, permissions and operator setup](docs/auth.md). For a new installation, link the intended project and apply **all** migrations using `supabase db push`; do not rerun initial SQL over existing tables.
 
 Copy `.env.example` to `.env.local` and set:
 
@@ -46,14 +50,13 @@ Copy `.env.example` to `.env.local` and set:
 DATA_MODE=supabase
 AI_PROVIDER=demo
 SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_PUBLISHABLE_KEY=<publishable key>
 SUPABASE_SECRET_KEY=<server-side secret key>
 WORKSPACE_ID=11111111-1111-4111-8111-111111111111
-APP_PASSWORD=<unique password of at least 12 characters>
-SESSION_SECRET=<random secret of at least 32 characters>
 WORKFLOW_TOKEN=<separate random token of at least 32 characters>
 ```
 
-Restart the app, sign in, and explicitly load sample data or import a source batch. `SUPABASE_SERVICE_ROLE_KEY` is supported as a legacy alternative to `SUPABASE_SECRET_KEY`. Keys stay on the server. Browser roles receive no table or RPC access. The MVP uses one configured workspace and a shared reviewer password; multi-user identity and tenant membership are future extensions.
+Restart the app, open your administrator invitation to set a password, sign in, and explicitly load sample data or import a batch. Administrators invite users and manage roles in **Workspace access**. Reporting uses validated user identity and RLS, not the server secret. Workflow credentials cannot approve or manage members. The app selects one workspace, while database policies isolate workspace memberships. No shared app password is used.
 
 ## Optional live AI
 

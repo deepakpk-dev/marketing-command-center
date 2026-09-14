@@ -49,5 +49,6 @@ export async function POST(request: Request) {
       };
     },
     true,
+    "analyze",
   );
 }

@@ -7,6 +7,13 @@ import {
 } from "./auth";
 import { getRepository, type Repository } from "./repository";
 import { ApiError } from "./errors";
+import {
+  authorizeConnected,
+  createAdminClient,
+  createRequestAuth,
+  type RequestAuth,
+} from "./supabase-auth";
+import type { Permission } from "./permissions";
 export const filterSchema = z
   .object({
     days: z.coerce
@@ -64,22 +71,46 @@ export async function withRepository(
   request: Request,
   handler: (repo: Repository, access: Access) => Promise<unknown>,
   workflow = false,
+  permission: Permission = "read",
 ): Promise<Response> {
+  let auth: RequestAuth | undefined;
   try {
-    const access = authorizeRequest(request, workflow),
+    let access: Access;
+    let repo: Repository;
+    if (getDataMode() === "supabase") {
+      let workflowAccess: Access | undefined;
+      if (workflow && (permission === "ingest" || permission === "analyze")) {
+        try {
+          workflowAccess = authorizeRequest(request, true);
+        } catch (error) {
+          if (!(error instanceof ApiError && error.status === 401)) throw error;
+        }
+      }
+      if (workflowAccess?.workflow) {
+        access = workflowAccess;
+        repo = getRepository(access.sessionId, createAdminClient());
+      } else {
+        auth = createRequestAuth(request);
+        access = await authorizeConnected(auth, permission);
+        repo = getRepository(access.sessionId, auth.client);
+      }
+    } else {
+      access = authorizeRequest(request, false);
       repo = getRepository(access.sessionId);
+    }
     const data = await handler(repo, access);
     const headers = new Headers({ "Cache-Control": "no-store" });
     if (access.cookie) headers.set("Set-Cookie", access.cookie);
     if (data instanceof Response) {
       for (const [key, value] of headers) data.headers.set(key, value);
-      return data;
+      return auth ? auth.finalize(data) : data;
     }
-    return Response.json(data, { headers });
+    const response = Response.json(data, { headers });
+    return auth ? auth.finalize(response) : response;
   } catch (error) {
     const response = errorResponse(error);
     response.headers.set("Cache-Control", "no-store");
-    return response;
+    return auth ? auth.finalize(response) : response;
   }
 }
 export function publicConfig() {

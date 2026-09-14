@@ -26,6 +26,7 @@ import { AnalystBrief, AnalystView } from "./analyst";
 import { Approvals } from "./approvals";
 import { Connections } from "./connections";
 import { CampaignDetails } from "./campaign-details";
+import { WorkspaceAccess } from "./workspace-access";
 import {
   money,
   multiplier,
@@ -42,13 +43,20 @@ import type {
   Period,
   Recommendation,
 } from "@/lib/types";
-type View = "overview" | "campaigns" | "analyst" | "approvals" | "connections";
+type View =
+  | "overview"
+  | "campaigns"
+  | "analyst"
+  | "approvals"
+  | "connections"
+  | "access";
 const navigation = [
   { id: "overview" as const, label: "Overview", icon: LayoutDashboard },
   { id: "campaigns" as const, label: "Campaigns", icon: Layers },
   { id: "analyst" as const, label: "AI analyst", icon: Sparkles },
   { id: "approvals" as const, label: "Approvals", icon: CheckCheck },
   { id: "connections" as const, label: "Connections", icon: Plug },
+  { id: "access" as const, label: "Workspace access", icon: ShieldCheck },
 ];
 const headings: Record<View, string> = {
   overview: "Performance overview",
@@ -56,6 +64,7 @@ const headings: Record<View, string> = {
   analyst: "Your AI analyst",
   approvals: "Review, then act",
   connections: "Your data, connected",
+  access: "People and permissions",
 };
 const subtitles: Record<View, string> = {
   overview: "A clear view of spend, return, and what needs attention.",
@@ -63,6 +72,7 @@ const subtitles: Record<View, string> = {
   analyst: "Understand the change. Check the evidence. Choose the next test.",
   approvals: "Turn recommendations into deliberate, recorded decisions.",
   connections: "Repeatable ingestion and clear paths to live integrations.",
+  access: "Individual identities. Clear responsibilities. Recorded decisions.",
 };
 export function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null),
@@ -76,6 +86,7 @@ export function Dashboard() {
     [notice, setNotice] = useState(""),
     [needsLogin, setNeedsLogin] = useState(false),
     [password, setPassword] = useState(""),
+    [email, setEmail] = useState(""),
     [mobileNav, setMobileNav] = useState(false),
     [selected, setSelected] = useState<CampaignPerformance | null>(null);
   useEffect(() => {
@@ -86,9 +97,10 @@ export function Dashboard() {
     })
       .then(async (response) => {
         const body = await response.json();
-        if (response.status === 401) {
+        if (response.status === 401 || response.status === 403) {
           setNeedsLogin(true);
           setData(null);
+          if (response.status === 403) setError(body.error);
           return;
         }
         if (!response.ok)
@@ -170,7 +182,6 @@ export function Dashboard() {
     mutate(`/api/recommendations/${rec.id}/decision`, "POST", {
       decision,
       note,
-      reviewer: data?.mode === "demo" ? "Demo reviewer" : "Workspace reviewer",
     });
   const pending =
     data?.recommendations.filter((r) => r.status === "pending" && !r.stale)
@@ -253,22 +264,24 @@ export function Dashboard() {
         </div>
         <div className="nav-label">WORKSPACE</div>
         <nav aria-label="Main navigation">
-          {navigation.map((item) => (
-            <button
-              key={item.id}
-              className={`nav-item ${view === item.id ? "active" : ""}`}
-              onClick={() => navigate(item.id)}
-              aria-current={view === item.id ? "page" : undefined}
-            >
-              <item.icon size={18} />
-              <span>{item.label}</span>
-              {item.id === "approvals" && pending > 0 && (
-                <span className="nav-count" aria-hidden="true">
-                  {pending}
-                </span>
-              )}
-            </button>
-          ))}
+          {navigation
+            .filter((item) => item.id !== "access" || data?.mode === "supabase")
+            .map((item) => (
+              <button
+                key={item.id}
+                className={`nav-item ${view === item.id ? "active" : ""}`}
+                onClick={() => navigate(item.id)}
+                aria-current={view === item.id ? "page" : undefined}
+              >
+                <item.icon size={18} />
+                <span>{item.label}</span>
+                {item.id === "approvals" && pending > 0 && (
+                  <span className="nav-count" aria-hidden="true">
+                    {pending}
+                  </span>
+                )}
+              </button>
+            ))}
         </nav>
         <div className="sidebar-bottom">
           <div className="automation-status">
@@ -287,10 +300,10 @@ export function Dashboard() {
           <div className="profile-row">
             <span className="profile-avatar">PM</span>
             <div>
-              <strong>Performance team</strong>
+              <strong>{data?.access?.user.email || "Performance team"}</strong>
               <small>
                 {data?.mode === "supabase"
-                  ? "Workspace access"
+                  ? data.access?.role || "Workspace access"
                   : "Explore the demo"}
               </small>
             </div>
@@ -299,9 +312,17 @@ export function Dashboard() {
                 className="icon-button"
                 aria-label="Sign out"
                 onClick={async () => {
-                  await fetch("/api/session", { method: "DELETE" });
-                  setNeedsLogin(true);
-                  setData(null);
+                  const response = await fetch("/api/session", {
+                    method: "DELETE",
+                  });
+                  if (response.ok) {
+                    setNeedsLogin(true);
+                    setData(null);
+                    setSelected(null);
+                    setView("overview");
+                    setNotice("");
+                  } else
+                    setError("Sign-out could not be confirmed. Please retry.");
                 }}
               >
                 <LogOut size={16} />
@@ -341,7 +362,11 @@ export function Dashboard() {
             </span>
             <button
               className="button compact"
-              disabled={busy || !data}
+              disabled={
+                busy ||
+                !data ||
+                (data.mode === "supabase" && !data.access?.permissions.ingest)
+              }
               onClick={() =>
                 void mutate("/api/ingest", "PUT", { source: "sample" })
               }
@@ -405,20 +430,33 @@ export function Dashboard() {
               <ShieldCheck size={30} />
               <h2>Open your workspace</h2>
               <p>
-                Enter the shared workspace password to review connected
-                marketing data.
+                Sign in with your invited email address and individual password.
+                Workspace permissions control access to connected marketing
+                data.
               </p>
               <form
                 onSubmit={async (event) => {
                   event.preventDefault();
-                  if (await mutate("/api/session", "POST", { password })) {
+                  if (
+                    await mutate("/api/session", "POST", { email, password })
+                  ) {
                     setPassword("");
                     setNeedsLogin(false);
                   }
                 }}
               >
                 <label>
-                  Workspace password
+                  Email address
+                  <input
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Your password
                   <input
                     type="password"
                     required
@@ -431,6 +469,11 @@ export function Dashboard() {
                   Sign in
                 </button>
               </form>
+                <p><a href="/auth/recover" className="text-button">Forgot your password?</a></p>
+                <p className="measurement-note">
+                  First time here? Open your invitation email to set your
+                password. Access is invite-only.
+              </p>
             </section>
           ) : (
             <>
@@ -615,6 +658,12 @@ export function Dashboard() {
                       data={data}
                       busy={busy}
                       onUpload={(input) => mutate("/api/ingest", "POST", input)}
+                    />
+                  )}
+                  {view === "access" && (
+                    <WorkspaceAccess
+                      data={data}
+                      onChanged={() => setRefresh((value) => value + 1)}
                     />
                   )}
                   <footer className="workspace-footer">

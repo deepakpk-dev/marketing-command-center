@@ -2,7 +2,9 @@
 
 **Signal** is a working portfolio application that turns advertising and analytics data into evidence, recommendations, and human decisions. One Next.js application runs the dashboard and all backend route handlers.
 
-Live application: [Marketing Command Center](https://marketing-command-center-deepakprabhs-projects.vercel.app). Use your existing invited account; **Forgot your password?** opens recovery. Vercel account login is not required. Supabase sign-in and workspace permissions protect the data. Production uses the deterministic sample analyst.
+Live application: [Marketing Command Center](https://marketing-command-center-deepakprabhs-projects.vercel.app). Choose **Explore sample data** or **Upload my report** without an account or live advertising connection. The public sandbox processes campaign reports locally in browser memory; refreshing or closing the tab clears the dataset and simulated decisions. No report data is uploaded or sent to AI providers.
+
+The separate [private workspace](https://marketing-command-center-deepakprabhs-projects.vercel.app/workspace) retains individual invited sign-ins, recovery and Supabase permissions. Vercel account login is not required.
 
 Password recovery is implemented and production-tested. Resend delivery to general recipients still requires a verified sender domain and Supabase custom SMTP. See [email delivery](docs/email-delivery.md).
 
@@ -18,7 +20,9 @@ npm ci
 npm run dev
 ```
 
-Open [localhost:3000](http://localhost:3000). No secrets or external accounts are required. Demo mode seeds 56 days of modeled data for six campaigns, with 336 advertising facts and 336 GA4 facts. The latest sample date is **12 September 2026**. The demo includes a Meta efficiency decline, a non-brand search conversion issue, and a controlled growth opportunity.
+Open [localhost:3000](http://localhost:3000) for public evaluation. No secrets or external accounts are required. Public sample data includes 56 days of modeled advertising facts for six campaigns, ending **12 September 2026**. `/workspace` retains the original dashboard, including modeled GA4 facts in demo mode.
+
+Public CSV imports accept campaign-level daily Google Ads or Meta exports. Required fields are campaign ID, campaign name, daily date (`YYYY-MM-DD`), spend, impressions and clicks. Conversions and conversion value are optional; unavailable fields are never interpreted as zero. Common English headers are detected, with manual matches when needed. One currency per report, up to 2 MB and 10,000 rows. Duplicate campaign/date rows, malformed values and multi-day summary rows block import with contextual errors. CSV examples are available in the interface. Complete adjacent windows are required for campaign anomaly claims; shorter uploads still provide observed totals.
 
 ## What works
 
@@ -33,12 +37,11 @@ Open [localhost:3000](http://localhost:3000). No secrets or external accounts ar
 
 ## Try the portfolio story
 
-1. Review the seven-day overview and open **Prospecting | Broad**. Inspect CPA, ROAS and CTR changes.
-2. Open **AI analyst** and expand the metric evidence. Explanations are hypotheses; the observed numbers are quoted from the data.
-3. Open **Approvals**, review an action, add a note and approve or reject. Reload to see the session’s recorded decision.
-4. Sync sample data twice. The fact count remains 672. Reanalysis of unchanged evidence preserves prior decisions.
-5. Open **Connections**, download the example JSON, change a metric, and import it. Older pending actions become stale until fresh analysis.
-6. Filter by channel or period and export the selected campaign report.
+1. Choose **Explore sample data** and follow **Review the evidence**.
+2. Inspect the campaign observations, open its recommendation and record a simulated decision with a note.
+3. Change period/channel, search campaigns and export the selected report.
+4. Try **Upload another report** using either downloadable CSV example or your own daily export. Preview and correct matches before replacing the dataset.
+5. Use **Clear my data** to return to welcome. Refresh also clears the public sandbox. Private database-backed decisions remain separate.
 
 ## Connected Supabase mode
 

@@ -90,7 +90,7 @@ try {
     401,
   );
   const page = await context.newPage();
-  await page.goto("http://127.0.0.1:4000");
+  await page.goto("http://127.0.0.1:4000/workspace");
   await page.getByLabel("Email address", { exact: true }).fill(email);
   await page.getByLabel("Your password", { exact: true }).fill(password);
   const loginResult = page.waitForResponse(

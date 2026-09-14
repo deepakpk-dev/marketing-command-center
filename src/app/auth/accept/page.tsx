@@ -116,7 +116,7 @@ export default function AcceptInvitation() {
                 if (!response.ok) throw new Error(result.error);
                 setPassword("");
                 setConfirm("");
-                router.replace("/");
+                router.replace("/workspace");
                 router.refresh();
               } catch (error) {
                 setError(
@@ -167,7 +167,7 @@ export default function AcceptInvitation() {
             Request a new reset link
           </Link>
         </p>
-        <Link href="/" className="text-button">
+        <Link href="/workspace" className="text-button">
           Back to sign-in
         </Link>
       </section>

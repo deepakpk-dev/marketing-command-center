@@ -4,7 +4,7 @@ test("signed-out connected workspace shows account access instead of demo or loa
   await page.route("**/api/dashboard?*", (route) => route.fulfill({
     status: 401, contentType: "application/json", body: JSON.stringify({ error: "Sign in with your invited account." }),
   }));
-  await page.goto("/");
+  await page.goto("/workspace");
   await expect(page.getByRole("heading", { name: "Open your workspace" })).toBeVisible();
   await expect(page.locator(".sync-state")).toContainText("Sign-in required");
   await expect(page.locator(".workspace-mode")).toContainText("Connected workspace");
@@ -17,7 +17,7 @@ test("dashboard cleanup does not produce unhandled errors or replace a newer fil
     Object.assign(window, { auditUnhandledErrors: errors });
     window.addEventListener("unhandledrejection", (event) => errors.push(String(event.reason?.message ?? event.reason)));
   });
-  await page.goto("/");
+  await page.goto("/workspace");
   await expect(page.locator(".kpi-strip")).toBeVisible();
   let release!: () => void;
   const blocked = new Promise<void>((resolve) => { release = resolve; });
@@ -41,7 +41,7 @@ test("dashboard cleanup does not produce unhandled errors or replace a newer fil
   expect(await page.evaluate(() => (window as Window & { auditUnhandledErrors?: string[] }).auditUnhandledErrors)).toEqual([]);
 });
 test("failed reporting filter hides previous metrics and retry loads the selection", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/workspace");
   const metrics = page.locator(".kpi-strip");
   await expect(metrics).toContainText("€14,144");
   await page.route("**/api/dashboard?days=28&channel=all", (route) =>
@@ -59,7 +59,7 @@ test("failed reporting filter hides previous metrics and retry loads the selecti
   await expect(page.locator(".toast.error")).toHaveCount(0);
 });
 test("complete marketer review and replay workflow", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/workspace");
   await expect(
     page.getByRole("heading", { name: "Performance overview" }),
   ).toBeVisible();
@@ -109,7 +109,7 @@ test("complete marketer review and replay workflow", async ({ page }) => {
   await expect(page.getByRole("status")).toContainText("Analysis complete");
 });
 test("validates import and API input", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/workspace");
   await expect(
     page.getByRole("heading", { name: "Performance overview" }),
   ).toBeVisible();
@@ -127,7 +127,7 @@ test("validates import and API input", async ({ page }) => {
 });
 test("mobile navigation and campaign table remain usable", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/workspace");
   await expect(
     page.getByRole("heading", { name: "Performance overview" }),
   ).toBeVisible();
@@ -146,7 +146,7 @@ test("chart filtering and changed-data import refresh the approval evidence", as
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/");
+  await page.goto("/workspace");
   await expect(
     page.getByRole("button", { name: "Sync sample data" }),
   ).toBeEnabled({ timeout: 45000 });

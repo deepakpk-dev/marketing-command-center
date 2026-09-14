@@ -1,4 +1,5 @@
-import { Dashboard } from "@/components/dashboard";
+import { PublicSandbox } from "@/components/public-sandbox";
+import "./sandbox.css";
 export default function Page() {
-  return <Dashboard />;
+  return <PublicSandbox />;
 }

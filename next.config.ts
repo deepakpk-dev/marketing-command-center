@@ -12,7 +12,7 @@ const config: NextConfig = {
     const hostname = canonical.hostname.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // Account pages share the same domain as Auth redirects and session cookies.
     // API endpoints are never redirected across domains with request bodies.
-    return ["/", "/auth/:path*"].map((source) => ({
+    return ["/", "/workspace", "/auth/:path*"].map((source) => ({
       source,
       destination: `${canonical.origin}${source}`,
       missing: [{ type: "host" as const, value: hostname }],

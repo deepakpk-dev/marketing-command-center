@@ -5,7 +5,7 @@ import config from "../next.config";
 afterEach(() => vi.unstubAllEnvs());
 
 describe("canonical account domain", () => {
-  it.each(["/", "/auth/recover", "/auth/reset?source=email", "/auth/accept"])(
+  it.each(["/", "/workspace", "/auth/recover", "/auth/reset?source=email", "/auth/accept"])(
     "routes alias page %s to the configured account domain",
     async (path) => {
       vi.stubEnv("APP_ORIGIN", "https://accounts.test");

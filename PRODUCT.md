@@ -6,7 +6,7 @@ product
 
 ## Users
 
-Performance marketers and growth leads reviewing campaigns on a laptop in a bright office. Their daily job is to spot waste, understand changes, and approve evidence-backed adjustments.
+Performance marketers and growth leads reviewing campaign exports, plus recruiters, startup founders and curious visitors evaluating the product without advertising credentials. They typically use a laptop in a bright office. Marketers need to spot waste and understand changes; evaluators need to experience the complete evidence-to-decision workflow immediately.
 
 ## Product Purpose
 
@@ -22,7 +22,7 @@ Decorative AI chat bubbles, neon command consoles, glass panels, indiscriminate 
 
 ## Design Principles
 
-Keep the result and evidence together. Make the next action obvious. Distinguish modeled sample data from live data. Give tables enough room. Explain measurement caveats at the point of use.
+Keep the result and evidence together. Make the next action obvious. Offer sample exploration and browser-local report upload without mandatory accounts or tours. Distinguish sample, uploaded and private workspace data, and clearly label simulations. Give tables enough room. Guidance should be contextual, bite-sized and actionable; explain measurement caveats at the point of use.
 
 ## Accessibility & Inclusion
 

@@ -8,5 +8,6 @@ supabase/.branches
 test-results
 playwright-report
 coverage
+output
 *.tsbuildinfo
 docs/screenshots

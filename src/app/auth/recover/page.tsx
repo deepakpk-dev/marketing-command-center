@@ -57,7 +57,7 @@ export default function RecoverPassword() {
           </button>
         </form>
         <p>
-          <Link href="/" className="text-button">
+          <Link href="/workspace" className="text-button">
             Back to sign-in
           </Link>
         </p>

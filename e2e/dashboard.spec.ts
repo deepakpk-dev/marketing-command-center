@@ -1,5 +1,23 @@
 import { test, expect } from "@playwright/test";
 import { buildSampleExports } from "../src/lib/samples";
+test("failed reporting filter hides previous metrics and retry loads the selection", async ({ page }) => {
+  await page.goto("/");
+  const metrics = page.locator(".kpi-strip");
+  await expect(metrics).toContainText("€14,144");
+  await page.route("**/api/dashboard?days=28&channel=all", (route) =>
+    route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Reporting temporarily unavailable." }) }),
+  );
+  await page.getByLabel("Reporting period").selectOption("28");
+  await expect(page.locator(".toast.error")).toContainText("Reporting temporarily unavailable");
+  await expect(metrics).toHaveCount(0);
+  await expect(page.locator(".date-context")).toHaveCount(0);
+  await page.unroute("**/api/dashboard?days=28&channel=all");
+  await page.getByRole("button", { name: "Retry", exact: true }).click();
+  await expect(metrics).toBeVisible();
+  await expect(page.locator(".date-context")).toContainText("16 Aug to 12 Sept 2026");
+  await expect(page.locator(".date-context")).toContainText("previous 28 days");
+  await expect(page.locator(".toast.error")).toHaveCount(0);
+});
 test("complete marketer review and replay workflow", async ({ page }) => {
   await page.goto("/");
   await expect(

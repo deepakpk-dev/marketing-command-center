@@ -97,6 +97,7 @@ export function Dashboard() {
     })
       .then(async (response) => {
         const body = await response.json();
+        if (controller.signal.aborted) return;
         if (response.status === 401 || response.status === 403) {
           setNeedsLogin(true);
           setData(null);
@@ -110,7 +111,10 @@ export function Dashboard() {
         setNeedsLogin(false);
       })
       .catch((e) => {
-        if (e.name !== "AbortError") setError(e.message);
+        if (controller.signal.aborted || e.name === "AbortError") return;
+        setData(null);
+        setSelected(null);
+        setError(e.message);
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -519,7 +523,7 @@ export function Dashboard() {
                   <span className="date-context">
                     {dateLabel(data.evidence.start)} to{" "}
                     {dateLabel(data.evidence.end, true)}{" "}
-                    <span>vs. previous {days} days</span>
+                    <span>vs. previous {data.evidence.days} days</span>
                   </span>
                 )}
               </div>

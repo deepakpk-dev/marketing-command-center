@@ -653,15 +653,17 @@
   }
   .sandbox-sidebar nav {
     flex-direction: row;
-    overflow-x: auto;
+    overflow-x: hidden;
     margin-bottom: 0;
     gap: 6px;
   }
   .sandbox-sidebar nav button {
-    flex-shrink: 0;
-    width: auto;
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    width: 100%;
     font-size: 12px;
-    padding: 9px 10px;
+    padding: 9px 4px;
   }
   .sandbox-sidebar nav svg {
     display: none;

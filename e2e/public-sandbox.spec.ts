@@ -202,6 +202,11 @@ test("public sandbox clears on refresh and mobile navigation is accessible", asy
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
+  expect(
+    await page
+      .locator(".sandbox-sidebar nav")
+      .evaluate((nav) => nav.scrollWidth <= nav.clientWidth),
+  ).toBe(true);
   await page.getByRole("button", { name: "Insights", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Your insights" }),
